@@ -27,7 +27,6 @@ class MaxPoolingLoss(object):
         self.p = p
         self.reduce = reduce
 
-
     def __call__(self, loss):
         is_cuda = loss.is_cuda
         shape = loss.size()

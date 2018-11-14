@@ -92,7 +92,7 @@ def main(config, cuda):
     # Loss definition
     criterion = CrossEntropyLoss2d(ignore_index=CONFIG.IGNORE_LABEL)
     criterion.to(device)
-    max_pooling_loss = MaxPoolingLoss(ratio=0.3, p=1.7, reduce=True)
+    max_pooling_loss = MaxPoolingLoss(ratio=0.1, p=1.3, reduce=True)
 
     # TensorBoard Logger
     writer = SummaryWriter(CONFIG.LOG_DIR)
@@ -141,8 +141,9 @@ def main(config, cuda):
                 # Resize labels for {100%, 75%, 50%, Max} logits
                 labels_ = F.interpolate(labels, logit.shape[2:], mode="nearest")
                 labels_ = labels_.squeeze(1).long()
-                # Compute crossentropy loss
-                loss += max_pooling_loss(criterion(logit, labels_))
+                # Compute NLL and MPL
+                nll_loss = criterion(logit, labels_)
+                loss += max_pooling_loss(nll_loss)
 
             # Backpropagate (just compute gradients wrt the loss)
             loss /= float(CONFIG.ITER_SIZE)
