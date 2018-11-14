@@ -19,6 +19,7 @@ from tensorboardX import SummaryWriter
 from torchnet.meter import MovingAverageValueMeter
 from tqdm import tqdm
 
+from mpl.mpl import MaxPoolingLoss
 from libs.datasets import get_dataset
 from libs.models import DeepLabV3Plus_ResNet101_MSC, DeepLabV2_ResNet101_MSC
 from libs.utils.loss import CrossEntropyLoss2d
@@ -91,6 +92,7 @@ def main(config, cuda):
     # Loss definition
     criterion = CrossEntropyLoss2d(ignore_index=CONFIG.IGNORE_LABEL)
     criterion.to(device)
+    max_pooling_loss = MaxPoolingLoss(ratio=0.3, p=1.7, reduce=True)
 
     # TensorBoard Logger
     writer = SummaryWriter(CONFIG.LOG_DIR)
@@ -140,7 +142,7 @@ def main(config, cuda):
                 labels_ = F.interpolate(labels, logit.shape[2:], mode="nearest")
                 labels_ = labels_.squeeze(1).long()
                 # Compute crossentropy loss
-                loss += criterion(logit, labels_)
+                loss += max_pooling_loss(criterion(logit, labels_))
 
             # Backpropagate (just compute gradients wrt the loss)
             loss /= float(CONFIG.ITER_SIZE)
