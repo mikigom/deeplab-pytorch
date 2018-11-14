@@ -10,7 +10,6 @@ from __future__ import print_function
 import glob
 import os.path as osp
 import random
-from collections import defaultdict
 from glob import glob
 
 import cv2

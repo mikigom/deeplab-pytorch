@@ -1,0 +1,9 @@
+click
+addict
+tqdm
+torchnet
+tensorboardX
+torchvision
+numpy
+torch
+pydensecrf

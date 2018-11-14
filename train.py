@@ -10,8 +10,6 @@ from __future__ import absolute_import, division, print_function
 import os.path as osp
 
 import click
-import cv2
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -22,30 +20,14 @@ from torchnet.meter import MovingAverageValueMeter
 from tqdm import tqdm
 
 from libs.datasets import get_dataset
-from libs.models import DeepLabV2_ResNet101_MSC
+from libs.models import DeepLabV3Plus_ResNet101_MSC, DeepLabV2_ResNet101_MSC
 from libs.utils.loss import CrossEntropyLoss2d
 
 
-def get_params(model, key):
-    # For Dilated FCN
-    if key == "1x":
-        for m in model.named_modules():
-            if "layer" in m[0]:
-                if isinstance(m[1], nn.Conv2d):
-                    for p in m[1].parameters():
-                        yield p
-    # For conv weight in the ASPP module
-    if key == "10x":
-        for m in model.named_modules():
-            if "aspp" in m[0]:
-                if isinstance(m[1], nn.Conv2d):
-                    yield m[1].weight
-    # For conv bias in the ASPP module
-    if key == "20x":
-        for m in model.named_modules():
-            if "aspp" in m[0]:
-                if isinstance(m[1], nn.Conv2d):
-                    yield m[1].bias
+def get_params(model):
+    for name, param in model.named_parameters():
+        if param.requires_grad:
+            yield param
 
 
 def poly_lr_scheduler(optimizer, init_lr, iter, lr_decay_iter, max_iter, power):
@@ -53,8 +35,6 @@ def poly_lr_scheduler(optimizer, init_lr, iter, lr_decay_iter, max_iter, power):
         return None
     new_lr = init_lr * (1 - float(iter) / max_iter) ** power
     optimizer.param_groups[0]["lr"] = new_lr
-    optimizer.param_groups[1]["lr"] = 10 * new_lr
-    optimizer.param_groups[2]["lr"] = 20 * new_lr
 
 
 @click.command()
@@ -73,15 +53,11 @@ def main(config, cuda):
     # Configuration
     CONFIG = Dict(yaml.load(open(config)))
 
-    # Dataset 10k or 164k
     dataset = get_dataset(CONFIG.DATASET)(
-        root=CONFIG.ROOT,
-        split=CONFIG.SPLIT.TRAIN,
-        base_size=513,
-        crop_size=CONFIG.IMAGE.SIZE.TRAIN,
-        mean=(CONFIG.IMAGE.MEAN.B, CONFIG.IMAGE.MEAN.G, CONFIG.IMAGE.MEAN.R),
-        warp=CONFIG.WARP_IMAGE,
-        scale=(0.5, 0.75, 1.0, 1.25, 1.5),
+        data_path=CONFIG.ROOT,
+        crop_size=256,
+        scale=(0.6, 0.8, 1.0, 1.2, 1.4),
+        rotation=15,
         flip=True,
     )
 
@@ -95,33 +71,21 @@ def main(config, cuda):
     loader_iter = iter(loader)
 
     # Model
-    model = DeepLabV2_ResNet101_MSC(n_classes=CONFIG.N_CLASSES)
+    model = DeepLabV3Plus_ResNet101_MSC(n_classes=CONFIG.N_CLASSES)
     state_dict = torch.load(CONFIG.INIT_MODEL)
     model.load_state_dict(state_dict, strict=False)  # Skip "aspp" layer
     model = nn.DataParallel(model)
     model.to(device)
 
+    for name, param in model.named_parameters():
+        if param.requires_grad:
+            print(name)
+
     # Optimizer
-    optimizer = torch.optim.SGD(
-        # cf lr_mult and decay_mult in train.prototxt
-        params=[
-            {
-                "params": get_params(model.module, key="1x"),
-                "lr": CONFIG.LR,
-                "weight_decay": CONFIG.WEIGHT_DECAY,
-            },
-            {
-                "params": get_params(model.module, key="10x"),
-                "lr": 10 * CONFIG.LR,
-                "weight_decay": CONFIG.WEIGHT_DECAY,
-            },
-            {
-                "params": get_params(model.module, key="20x"),
-                "lr": 20 * CONFIG.LR,
-                "weight_decay": 0.0,
-            },
-        ],
-        momentum=CONFIG.MOMENTUM,
+    optimizer = torch.optim.Adam(
+                params=get_params(model.module),
+                lr=CONFIG.LR,
+                weight_decay=CONFIG.WEIGHT_DECAY,
     )
 
     # Loss definition

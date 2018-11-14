@@ -20,7 +20,7 @@ from addict import Dict
 from tqdm import tqdm
 
 from libs.datasets import get_dataset
-from libs.models import DeepLabV2_ResNet101_MSC
+from libs.models import DeepLabV3Plus_ResNet101_MSC, DeepLabV2_ResNet101_MSC
 from libs.utils import dense_crf, scores
 
 
@@ -47,14 +47,14 @@ def main(config, model_path, cuda, crf):
     CONFIG = Dict(yaml.load(open(config)))
 
     # Dataset 10k or 164k
+
     dataset = get_dataset(CONFIG.DATASET)(
-        root=CONFIG.ROOT,
+        data_path=CONFIG.ROOT,
         split=CONFIG.SPLIT.VAL,
-        base_size=CONFIG.IMAGE.SIZE.TEST,
-        mean=(CONFIG.IMAGE.MEAN.B, CONFIG.IMAGE.MEAN.G, CONFIG.IMAGE.MEAN.R),
-        warp=CONFIG.WARP_IMAGE,
+        ratio=0.8,
+        crop_size=256,
         scale=None,
-        flip=False,
+        flip=False
     )
 
     # DataLoader
@@ -68,7 +68,7 @@ def main(config, model_path, cuda, crf):
     torch.set_grad_enabled(False)
 
     # Model
-    model = DeepLabV2_ResNet101_MSC(n_classes=CONFIG.N_CLASSES)
+    model = DeepLabV3Plus_ResNet101_MSC(n_classes=CONFIG.N_CLASSES)
     state_dict = torch.load(model_path, map_location=lambda storage, loc: storage)
     model.load_state_dict(state_dict)
     model = nn.DataParallel(model)

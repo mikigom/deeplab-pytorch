@@ -81,10 +81,10 @@ class DeepLabV3Plus(nn.Module):
         h = self.layer5(h)
         h = self.aspp(h)
         h = self.fc1(h)
-        h = F.interpolate(h, size=h_.shape[2:], mode="bilinear")
+        h = F.interpolate(h, size=h_.shape[2:], mode="bilinear", align_corners=True)
         h = torch.cat((h, h_), dim=1)
         h = self.fc2(h)
-        h = F.interpolate(h, size=x.shape[2:], mode="bilinear")
+        h = F.interpolate(h, size=x.shape[2:], mode="bilinear", align_corners=True)
         return h
 
     def freeze_bn(self):

@@ -1,0 +1,32 @@
+DATASET: DSTL
+ROOT: /mnt/nas/Dataset/dstl/numpy
+IGNORE_LABEL: -1
+
+IMAGE:
+    SIZE:
+        TRAIN: 321
+        TEST: 513
+
+# Model definition
+N_CLASSES: 11
+
+# Training setting
+BATCH_SIZE:
+    TRAIN: 16
+    TEST: 8
+ITER_MAX: 50000
+ITER_SIZE: 2
+ITER_SAVE: 5000
+ITER_TB: 50
+LR_DECAY: 10
+LR: 7.5e-4
+MOMENTUM: 0.9
+OPTIMIZER: sgd
+POLY_POWER: 0.9
+WEIGHT_DECAY: 5.0e-4
+
+INIT_MODEL: ./data/models/deeplab_resnet101/coco_init/deeplabv2_resnet101_COCO_init.pth
+SAVE_DIR: ./data/models/deeplab_resnet101/dstl
+LOG_DIR: runs/dstl
+NUM_WORKERS: 4
+WARP_IMAGE: True
