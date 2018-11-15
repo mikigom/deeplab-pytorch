@@ -3,6 +3,10 @@ ROOT: /mnt/nas/Dataset/dstl/numpy
 IGNORE_LABEL: -1
 
 IMAGE:
+    MEAN:
+        R: 69.55760111
+        G: 63.49661184
+        B: 56.55917949
     SIZE:
         TRAIN: 321
         TEST: 513
@@ -14,12 +18,12 @@ N_CLASSES: 11
 BATCH_SIZE:
     TRAIN: 16
     TEST: 8
-ITER_MAX: 50000
+ITER_MAX: 200000
 ITER_SIZE: 2
 ITER_SAVE: 5000
-ITER_TB: 50
+ITER_TB: 10
 LR_DECAY: 10
-LR: 2.e-3
+LR: 1.e-4
 MOMENTUM: 0.9
 OPTIMIZER: sgd
 POLY_POWER: 0.9

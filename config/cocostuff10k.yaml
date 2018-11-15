@@ -1,5 +1,5 @@
 DATASET: cocostuff10k
-ROOT: /media/kazuto1011/Extra/cocostuff/cocostuff-10k-v1.1
+ROOT: /mnt/nas/Dataset/COCO-stuff-10k
 LABELS: ./data/datasets/cocostuff/labels_2.txt
 IGNORE_LABEL: -1
 
@@ -29,7 +29,7 @@ BATCH_SIZE:
 ITER_MAX: 20000
 ITER_SIZE: 2
 ITER_SAVE: 5000
-ITER_TB: 100
+ITER_TB: 10
 LR_DECAY: 10
 LR: 2.5e-4
 MOMENTUM: 0.9

@@ -10,26 +10,28 @@ import os.path as osp
 import cv2
 import math
 import random
-import numpy as np
 import glob
 from torch.utils import data
+
+import numpy as np
 
 
 class DSTL(data.Dataset):
     """COCO-Stuff base class"""
-
     def __init__(
         self,
         data_path,
         crop_size=256,
         scale=(0.8, 0.9, 1.0, 1.1, 1.2),
         rotation=15,
+        mean=(69.55760111, 63.49661184, 56.55917949),
         flip=True,
     ):
         self.data_path = data_path
         self.crop_size = crop_size
-        self.scale = tuple(sorted(scale))
+        self.scale = scale
         self.rotation = rotation
+        self.mean = np.array(mean)[np.newaxis, np.newaxis]
         self.flip = flip
 
         self.files = []
@@ -39,9 +41,10 @@ class DSTL(data.Dataset):
 
         self._set_files()
 
-        assert 90 % self.rotation == 0
-
     def _transform(self, image, label):
+        image = image.astype(np.float64)
+        image -= self.mean
+
         scale_factor = 1
         if self.scale is not None:
             assert image.shape[0] * self.scale[0] * math.sqrt(2) / 2 > self.crop_size
@@ -88,18 +91,17 @@ class DSTL(data.Dataset):
         label = cv2.warpAffine(label, M, (self.crop_size, self.crop_size), flags=cv2.INTER_NEAREST)
 
         # HWC -> CHW
-        image = image.transpose(2, 0, 1)/255.
+        image = image.transpose(2, 0, 1)
         return image, label
 
     def _set_files(self):
         # Set paths
-        image_path = list(glob.iglob(osp.join(self.data_path, '*.npy'), recursive=False))
         label_path = list(glob.iglob(osp.join(self.data_path, '*_label.npy'), recursive=False))
-        image_path = list(set(image_path) - set(label_path))
-        image_path.sort()
-        label_path.sort()
+        image_path = []
+        for i, single_image_path in enumerate(label_path):
+            single_image_path = single_image_path.split('.')[0][:-6] + '.npy'
+            image_path.append(single_image_path)
         assert len(image_path) == len(label_path)
-
         self.files = [(image_path[i], label_path[i]) for i in range(len(image_path))]
 
     def _load_data(self, index):
@@ -107,6 +109,7 @@ class DSTL(data.Dataset):
         # image = cv2.imread(image_path, cv2.IMREAD_COLOR).astype(np.float32)
         image = np.load(image_path)
         label = np.load(label_path).astype(np.int64)
+
         return image, label
 
     def __getitem__(self, index):
